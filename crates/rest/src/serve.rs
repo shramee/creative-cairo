@@ -1,13 +1,11 @@
 #![feature(internal_output_capture)]
-
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
-use std::{
-    io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream}, // error::Error, str::FromStr,
-};
 
+use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use anyhow::{Context, Ok};
 use casm::instructions::Instruction;
 use casm::{casm, casm_extend};
@@ -159,40 +157,25 @@ fn function_to_input_output_sizes(
     function_sizes
 }
 
-fn main() {
-    let addr = "127.0.0.1:7171";
-    let listener = TcpListener::bind(addr).unwrap();
-
-    println!("Cairo server - {}", addr);
-
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-
-        let _result = handle_connection(stream);
-    }
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| App::new().route("/", web::post().to(handle_connection)))
+        .bind(("127.0.0.1", 8080))?
+        .run()
+        .await
 }
 
-fn handle_cairo_run(_cairo: String) -> Result<String, anyhow::Error> {
-    // let mut file = File::create("foo.txt")?;
-    // file.write_all(b"Hello, world!")?;
+fn cairo_run_inner(cairo: String) -> Result<String, anyhow::Error> {
+    let mut file = File::create("compile.cairo")?;
+    file.write_all(&cairo.as_bytes())?;
 
-    let path = String::from("demo.cairo");
+    let path = String::from("compile.cairo");
 
     cairo_runner(&path)
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&mut stream);
-    let _http_request: Vec<_> = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
-
+fn handle_cairo_run(cairo: String) -> String {
     std::io::set_output_capture(Some(Default::default()));
-
-    let result = std::panic::catch_unwind(|| handle_cairo_run(String::from("")));
-    let contents: String;
 
     let captured = std::io::set_output_capture(None);
     let captured = captured.unwrap();
@@ -200,18 +183,15 @@ fn handle_connection(mut stream: TcpStream) {
     let captured = captured.into_inner().unwrap();
     let captured = String::from_utf8(captured).unwrap();
 
+    let result = std::panic::catch_unwind(|| cairo_run_inner(cairo));
+
     if result.is_ok() {
-        contents = format!("{:#?}", result.unwrap());
+        format!("{:#?}", result.unwrap())
     } else {
-        let err = result.unwrap_err();
-        contents = format!("Error occurred.\n{}", captured);
-        // !("{:#?}", err);
+        format!("Error occurred.\n{}", captured)
     }
+}
 
-    let status_line = "HTTP/1.1 200 OK";
-    let length = contents.len();
-
-    // println!( "{:#?}", &contents );
-    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-    stream.write_all(response.as_bytes()).unwrap();
+async fn handle_connection(req_body: String) -> impl Responder {
+    HttpResponse::Ok().body(handle_cairo_run(req_body))
 }

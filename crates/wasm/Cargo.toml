@@ -35,11 +35,6 @@ console_error_panic_hook = { version = "0.1.6", optional = true }
 # allocator, however.
 wee_alloc = { version = "0.4.5", optional = true }
 
-[dependencies.cairo-rs]
-default-features = false
-git = "https://github.com/lambdaclass/cairo-rs.git"
-rev = "4f36aaf46dea8cac158d0da5e80537388e048c01"
-
 [dev-dependencies]
 wasm-bindgen-test = "0.3.13"
 

@@ -1,12 +1,25 @@
 mod utils;
 
-use cairo_rs::{
-    hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-    types::program::Program,
-    vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
-};
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
+
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::Arc;
+// use anyhow::{Context, Ok};
+use casm::instructions::Instruction;
+use casm::{casm, casm_extend};
+use clap::Parser;
+use compiler::db::RootDatabase;
+use compiler::diagnostics::check_diagnostics;
+use compiler::project::setup_project;
+use itertools::chain;
+use sierra::program::StatementIdx;
+use sierra_gas::calc_gas_info;
+use sierra_gas::gas_info::GasInfo;
+use sierra_generator::db::SierraGenGroup;
+use sierra_generator::replace_ids::replace_sierra_ids_in_program;
+use sierra_to_casm::metadata::Metadata;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -28,16 +41,7 @@ pub fn start() {
 
 #[wasm_bindgen]
 pub fn run_cairo_program( program_json: &str ) -> Result<String, JsError> {
-    let program = Program::from_reader(Cursor::new(program_json), Some("main"))?;
+	// let program = Program::from_reader(Cursor::new(program_json), Some("main"))?;
 		
-    let mut runner = CairoRunner::new(&program, "all", false)?;
-    let mut vm = VirtualMachine::new(program.prime, false);
-    let hint_processor = BuiltinHintProcessor::new_empty();
-
-    let end = runner.initialize(&mut vm)?;
-    runner.run_until_pc(end, &mut vm, &hint_processor)?;
-
-    let mut buffer = Cursor::new(Vec::new());
-    runner.write_output(&mut vm, &mut buffer)?;
-    Ok(String::from_utf8(buffer.into_inner())?)
+    Ok(String::from(""))
 }

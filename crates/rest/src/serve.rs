@@ -1,6 +1,6 @@
 use std::{
 	io::{prelude::*, BufReader},
-	net::{TcpListener, TcpStream},
+	net::{TcpListener, TcpStream}, // error::Error, str::FromStr,
 };
 
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ use std::sync::Arc;
 use anyhow::{Context, Ok};
 use casm::instructions::Instruction;
 use casm::{casm, casm_extend};
-use clap::Parser;
+// use clap::Parser;
 use compiler::db::RootDatabase;
 use compiler::diagnostics::check_diagnostics;
 use compiler::project::setup_project;
@@ -22,15 +22,18 @@ use sierra_generator::db::SierraGenGroup;
 use sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use sierra_to_casm::metadata::Metadata;
 
-fn cairo_runner( path: String ) -> String {
+fn cairo_runner( path: &String ) -> Result<String, anyhow::Error> {
 
     let mut db_val = RootDatabase::default();
     let db = &mut db_val;
 
+
+		println!("{}", path);
+
     let main_crate_ids = setup_project(db, Path::new(&path))?;
 
     if check_diagnostics(db) {
-        anyhow::bail!("failed to compile: {}", path);
+        anyhow::bail!("Failed to get path");
     }
 
     let sierra_program = db
@@ -45,7 +48,7 @@ fn cairo_runner( path: String ) -> String {
     let program =
         sierra_to_casm::compiler::compile(&sierra_program, &metadata, false)
             .with_context(|| "Failed lowering to casm.")?;
-    let entry_code = create_entry_code(main_func, 0, metadata, &program)?;
+    let entry_code = create_entry_code(main_func, Some(0), metadata, &program)?;
 
     let (input_size, output_size) = function_sizes[&main_func.entry_point];
     let (memory, ap) = casm::run::run_function(chain!(entry_code, program.instructions).collect())
@@ -55,12 +58,15 @@ fn cairo_runner( path: String ) -> String {
 		let printed_result_size = output_size - input_size;
     for cell in &memory[(ap - printed_result_size)..ap] {
         match cell {
-            None => result_str.push_str("0"),
-            Some(value) => result_str.push_str("{value},"),
+            None => result_str.push_str("0,"),
+            Some(value) => {
+							result_str.push_str( &value.to_string());
+							result_str.push_str(",")
+						},
         }
     }
 
-		result_str
+		Ok(result_str)
 }
 
 /// Returns the instructions to add to the begining of the code to successfully call the main
@@ -158,25 +164,30 @@ fn function_to_input_output_sizes(
 }
 
 fn main() {
-	let listener = TcpListener::bind("127.0.0.1:7171").unwrap();
+	let addr = "127.0.0.1:7171";
+	let listener = TcpListener::bind(addr).unwrap();
 
-	println!( "Starting Cairo server" );
+	println!( "Cairo server - {}", addr );
 
 	for stream in listener.incoming() {
 			let stream = stream.unwrap();
 
-			handle_connection(stream);
+			let _result = handle_connection(stream);
+			if _result.is_ok() {
+				println!( "{:#?}", _result )
+			}
 	}
 }
 
-fn handle_connection(mut stream: TcpStream) {
+fn handle_connection(mut stream: TcpStream) -> Result<String, anyhow::Error> {
 	let buf_reader = BufReader::new(&mut stream);
-	let http_request: Vec<_> = buf_reader
+	let _http_request: Vec<_> = buf_reader
 			.lines()
 			.map(|result| result.unwrap())
 			.take_while(|line| !line.is_empty())
 			.collect();
 
+	let path = String::from("demo.cairo");
 
-	println!("Request: {:#?}", http_request);
+	cairo_runner(&path)
 }

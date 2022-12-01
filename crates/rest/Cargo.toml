@@ -1,5 +1,5 @@
 [package]
-name = "rest-runner"
+name = "cairo-rest-server"
 version.workspace = true
 edition.workspace = true
 
@@ -17,5 +17,5 @@ salsa.workspace = true
 thiserror.workspace = true
 
 [[bin]]
-name = "cairo-rest"
+name = "cairo-rest-server"
 path = "src/serve.rs"

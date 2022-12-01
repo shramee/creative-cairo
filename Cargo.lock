@@ -208,6 +208,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfb24e866b15a1af2a1b663f10c6b6b8f397a84aadb828f12e5b289ec23a3a3c"
 
 [[package]]
+name = "cairo-rest-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "casm",
+ "clap 4.0.26",
+ "compiler",
+ "itertools",
+ "salsa",
+ "sierra",
+ "sierra_gas",
+ "sierra_generator",
+ "sierra_to_casm",
+ "thiserror",
+]
+
+[[package]]
 name = "cairo-rs"
 version = "0.1.0"
 source = "git+https://github.com/lambdaclass/cairo-rs?rev=3a2dead#3a2deadd580eef6c370a3d261379bece9731bfcf"
@@ -1707,23 +1724,6 @@ name = "relative-path"
 version = "1.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0df32d82cedd1499386877b062ebe8721f806de80b08d183c70184ef17dd1d42"
-
-[[package]]
-name = "rest-runner"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "casm",
- "clap 4.0.26",
- "compiler",
- "itertools",
- "salsa",
- "sierra",
- "sierra_gas",
- "sierra_generator",
- "sierra_to_casm",
- "thiserror",
-]
 
 [[package]]
 name = "rfc6979"

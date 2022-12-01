@@ -43,6 +43,11 @@ window.submitCairo = async () => {
     body: cairo,
   });
   cairoResp = await cairoResp.text();
+
+  if (cairoResp.indexOf("Failed to") > -1) {
+    cairoResp = "Failed to compile.";
+  }
+  document.getElementById("response").innerText = cairoResp;
   console.log(cairoResp);
 };
 

@@ -48,13 +48,27 @@
         width: 100%;
         height: 512px;
       }
+
+			.fixed {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				height: 100px;
+				overflow: auto;
+        box-shadow: 0 0 1em rgb(0, 0, 0, 0.3);
+				padding: 1em;
+			}
     </style>
   </head>
   <body>
 
+		<pre id="response" class="fixed">
+
+		</pre>
+
 		<div class="editor">
 			<h1>Creative coding with Cairo</h3>
-
 				<p>
 					Write Cairo and watch it draw stuff in the Canvas.
 				</p>

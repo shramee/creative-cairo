@@ -15,6 +15,7 @@ sierra_to_casm = { path = "../sierra_to_casm" }
 itertools.workspace = true
 salsa.workspace = true
 actix-web = "4"
+actix-files = "*"
 thiserror.workspace = true
 
 [[bin]]

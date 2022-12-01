@@ -5,6 +5,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
 
+use actix_files;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use anyhow::{Context, Ok};
 use casm::instructions::Instruction;
@@ -159,10 +160,14 @@ fn function_to_input_output_sizes(
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().route("/", web::post().to(handle_connection)))
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .service(actix_files::Files::new("/static", ".").show_files_listing())
+            .route("/", web::post().to(handle_connection))
+    })
+    .bind(("127.0.0.1", 8080))?
+    .run()
+    .await
 }
 
 fn cairo_run_inner(cairo: String) -> Result<String, anyhow::Error> {

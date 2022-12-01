@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-    "crates/wasm",
     "crates/casm",
     "crates/compiler",
     "crates/db_utils",

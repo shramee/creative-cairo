@@ -162,8 +162,8 @@ fn function_to_input_output_sizes(
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
+            .route("/cairo", web::post().to(handle_connection))
             .service(actix_files::Files::new("/static", ".").show_files_listing())
-            .route("/", web::post().to(handle_connection))
     })
     .bind(("127.0.0.1", 8080))?
     .run()

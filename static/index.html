@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creative coding with Cairo</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        display: flex;
+        justify-content: center;
+				font: 300 1rem sans-serif;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 0;
+      }
+
+			h1 {
+				font: inherit;
+				font-size: 2em;
+			}
+
+      canvas {
+        max-width: calc(100% - 2em);
+        height: auto;
+        box-shadow: 0 0 1em rgb(0, 0, 0, 0.3);
+      }
+
+			button {
+				background: #222;
+				color: #eee;
+				font-size: 1.4em;
+				padding: .5em .8em;
+				width: 100%;
+			}
+
+      .editor {
+        width: 512px;
+				margin-right: 1em;
+      }
+
+      .editor textarea {
+        width: 100%;
+        height: 512px;
+      }
+    </style>
+  </head>
+  <body>
+
+		<div class="editor">
+			<h1>Creative coding with Cairo</h3>
+
+				<p>
+					Write Cairo and watch it draw stuff in the Canvas.
+				</p>
+				<p>
+				<button onclick="submitCairo()">Run Cairo</button>
+			</p>
+      <textarea id="cairo" cols="30" rows="10"></textarea>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/dumb-renderer@0.1.0/dist/index.global.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -6,6 +6,7 @@ use std::{
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
+use std::panic;
 
 use anyhow::{Context, Ok};
 use casm::instructions::Instruction;
@@ -174,7 +175,7 @@ fn main() {
 
 			let _result = handle_connection(stream);
 			if _result.is_ok() {
-				println!( "{:#?}", _result )
+				println!( "{:#?}", _result.unwrap() )
 			}
 	}
 }
@@ -189,5 +190,14 @@ fn handle_connection(mut stream: TcpStream) -> Result<String, anyhow::Error> {
 
 	let path = String::from("demo.cairo");
 
-	cairo_runner(&path)
+	let result = panic::catch_unwind(|| {
+    cairo_runner(&path)
+	});
+
+	if result.is_ok() {
+		result.unwrap()
+	} else {
+		println!( "Error occurred." );
+		Ok(String::from("Error"))
+	}
 }

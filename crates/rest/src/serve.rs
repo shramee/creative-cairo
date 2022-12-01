@@ -22,16 +22,15 @@ use sierra_generator::db::SierraGenGroup;
 use sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use sierra_to_casm::metadata::Metadata;
 
-fn cairo_runner() -> anyhow::Result<()> {
-    let args = Args::parse();
+fn cairo_runner( path: String ) -> String {
 
     let mut db_val = RootDatabase::default();
     let db = &mut db_val;
 
-    let main_crate_ids = setup_project(db, Path::new(&args.path))?;
+    let main_crate_ids = setup_project(db, Path::new(&path))?;
 
     if check_diagnostics(db) {
-        anyhow::bail!("failed to compile: {}", args.path);
+        anyhow::bail!("failed to compile: {}", path);
     }
 
     let sierra_program = db
@@ -42,35 +41,26 @@ fn cairo_runner() -> anyhow::Result<()> {
     let sierra_program = Arc::new(replace_sierra_ids_in_program(db, &sierra_program));
     let main_func =
         find_main(&sierra_program).with_context(|| "Main function not provided in module.")?;
-    let metadata = create_metadata(&sierra_program, args.available_gas.is_some())?;
+    let metadata = create_metadata(&sierra_program, false)?;
     let program =
-        sierra_to_casm::compiler::compile(&sierra_program, &metadata, args.available_gas.is_some())
+        sierra_to_casm::compiler::compile(&sierra_program, &metadata, false)
             .with_context(|| "Failed lowering to casm.")?;
-    let entry_code = create_entry_code(main_func, args.available_gas, metadata, &program)?;
+    let entry_code = create_entry_code(main_func, 0, metadata, &program)?;
 
     let (input_size, output_size) = function_sizes[&main_func.entry_point];
     let (memory, ap) = casm::run::run_function(chain!(entry_code, program.instructions).collect())
         .with_context(|| "Failed running casm code.")?;
-    if args.print_full_memory {
-        print!("Full memory: [");
-        for cell in &memory {
-            match cell {
-                None => print!("_, "),
-                Some(value) => print!("{value}, "),
-            }
-        }
-        println!("]");
-    }
-    print!("Returned values: [");
-    let printed_result_size = output_size - input_size;
+
+		let mut result_str = String::new();
+		let printed_result_size = output_size - input_size;
     for cell in &memory[(ap - printed_result_size)..ap] {
         match cell {
-            None => print!("_, "),
-            Some(value) => print!("{value}, "),
+            None => result_str.push_str("0"),
+            Some(value) => result_str.push_str("{value},"),
         }
     }
-    println!("]");
-    Ok(())
+
+		result_str
 }
 
 /// Returns the instructions to add to the begining of the code to successfully call the main

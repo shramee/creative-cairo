@@ -1,12 +1,12 @@
-use std::{
-	io::{prelude::*, BufReader},
-	net::{TcpListener, TcpStream}, // error::Error, str::FromStr,
-};
+#![feature(internal_output_capture)]
 
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
-use std::panic;
+use std::{
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream}, // error::Error, str::FromStr,
+};
 
 use anyhow::{Context, Ok};
 use casm::instructions::Instruction;
@@ -23,13 +23,9 @@ use sierra_generator::db::SierraGenGroup;
 use sierra_generator::replace_ids::replace_sierra_ids_in_program;
 use sierra_to_casm::metadata::Metadata;
 
-fn cairo_runner( path: &String ) -> Result<String, anyhow::Error> {
-
+fn cairo_runner(path: &String) -> Result<String, anyhow::Error> {
     let mut db_val = RootDatabase::default();
     let db = &mut db_val;
-
-
-		println!("{}", path);
 
     let main_crate_ids = setup_project(db, Path::new(&path))?;
 
@@ -46,28 +42,27 @@ fn cairo_runner( path: &String ) -> Result<String, anyhow::Error> {
     let main_func =
         find_main(&sierra_program).with_context(|| "Main function not provided in module.")?;
     let metadata = create_metadata(&sierra_program, false)?;
-    let program =
-        sierra_to_casm::compiler::compile(&sierra_program, &metadata, false)
-            .with_context(|| "Failed lowering to casm.")?;
+    let program = sierra_to_casm::compiler::compile(&sierra_program, &metadata, false)
+        .with_context(|| "Failed lowering to casm.")?;
     let entry_code = create_entry_code(main_func, Some(0), metadata, &program)?;
 
     let (input_size, output_size) = function_sizes[&main_func.entry_point];
     let (memory, ap) = casm::run::run_function(chain!(entry_code, program.instructions).collect())
         .with_context(|| "Failed running casm code.")?;
 
-		let mut result_str = String::new();
-		let printed_result_size = output_size - input_size;
+    let mut result_str = String::new();
+    let printed_result_size = output_size - input_size;
     for cell in &memory[(ap - printed_result_size)..ap] {
         match cell {
             None => result_str.push_str("0,"),
             Some(value) => {
-							result_str.push_str( &value.to_string());
-							result_str.push_str(",")
-						},
+                result_str.push_str(&value.to_string());
+                result_str.push_str(",")
+            }
         }
     }
 
-		Ok(result_str)
+    Ok(result_str)
 }
 
 /// Returns the instructions to add to the begining of the code to successfully call the main
@@ -165,39 +160,58 @@ fn function_to_input_output_sizes(
 }
 
 fn main() {
-	let addr = "127.0.0.1:7171";
-	let listener = TcpListener::bind(addr).unwrap();
+    let addr = "127.0.0.1:7171";
+    let listener = TcpListener::bind(addr).unwrap();
 
-	println!( "Cairo server - {}", addr );
+    println!("Cairo server - {}", addr);
 
-	for stream in listener.incoming() {
-			let stream = stream.unwrap();
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
 
-			let _result = handle_connection(stream);
-			if _result.is_ok() {
-				println!( "{:#?}", _result.unwrap() )
-			}
-	}
+        let _result = handle_connection(stream);
+    }
 }
 
-fn handle_connection(mut stream: TcpStream) -> Result<String, anyhow::Error> {
-	let buf_reader = BufReader::new(&mut stream);
-	let _http_request: Vec<_> = buf_reader
-			.lines()
-			.map(|result| result.unwrap())
-			.take_while(|line| !line.is_empty())
-			.collect();
+fn handle_cairo_run(_cairo: String) -> Result<String, anyhow::Error> {
+    // let mut file = File::create("foo.txt")?;
+    // file.write_all(b"Hello, world!")?;
 
-	let path = String::from("demo.cairo");
+    let path = String::from("demo.cairo");
 
-	let result = panic::catch_unwind(|| {
     cairo_runner(&path)
-	});
+}
 
-	if result.is_ok() {
-		result.unwrap()
-	} else {
-		println!( "Error occurred." );
-		Ok(String::from("Error"))
-	}
+fn handle_connection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+    let _http_request: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
+
+    std::io::set_output_capture(Some(Default::default()));
+
+    let result = std::panic::catch_unwind(|| handle_cairo_run(String::from("")));
+    let contents: String;
+
+    let captured = std::io::set_output_capture(None);
+    let captured = captured.unwrap();
+    let captured = Arc::try_unwrap(captured).unwrap();
+    let captured = captured.into_inner().unwrap();
+    let captured = String::from_utf8(captured).unwrap();
+
+    if result.is_ok() {
+        contents = format!("{:#?}", result.unwrap());
+    } else {
+        let err = result.unwrap_err();
+        contents = format!("Error occurred.\n{}", captured);
+        // !("{:#?}", err);
+    }
+
+    let status_line = "HTTP/1.1 200 OK";
+    let length = contents.len();
+
+    // println!( "{:#?}", &contents );
+    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    stream.write_all(response.as_bytes()).unwrap();
 }

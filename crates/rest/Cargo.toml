@@ -4,8 +4,18 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-runner = { path = "../runner" }
+anyhow.workspace = true
+clap.workspace = true
+compiler = { path = "../compiler" }
+casm = { path = "../casm" }
+sierra = { path = "../sierra" }
+sierra_gas = { path = "../sierra_gas" }
+sierra_generator = { path = "../sierra_generator" }
+sierra_to_casm = { path = "../sierra_to_casm" }
+itertools.workspace = true
+salsa.workspace = true
+thiserror.workspace = true
 
 [[bin]]
-name = "cairo-rest-server"
+name = "cairo-rest"
 path = "src/serve.rs"

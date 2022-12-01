@@ -1712,7 +1712,17 @@ checksum = "0df32d82cedd1499386877b062ebe8721f806de80b08d183c70184ef17dd1d42"
 name = "rest-runner"
 version = "0.1.0"
 dependencies = [
- "runner",
+ "anyhow",
+ "casm",
+ "clap 4.0.26",
+ "compiler",
+ "itertools",
+ "salsa",
+ "sierra",
+ "sierra_gas",
+ "sierra_generator",
+ "sierra_to_casm",
+ "thiserror",
 ]
 
 [[package]]

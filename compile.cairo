@@ -1,3 +1,1 @@
-func main() -> felt {
-    5
-}
+adsasd

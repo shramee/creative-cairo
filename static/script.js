@@ -37,15 +37,17 @@ async function setupDumbRenderer() {
 
 window.submitCairo = async () => {
   let cairo = document.getElementById("cairo").value;
-  let cairoResp = await fetch("//localhost:8080", {
+  let cairoResp = await fetch("./cairo", {
     method: "POST",
     headers: {},
     body: cairo,
   });
-
+  cairoResp = await cairoResp.text();
   console.log(cairoResp);
 };
 
-function ready(renderer) {}
+function ready(renderer) {
+  window.render = renderer;
+}
 
 setupDumbRenderer().then(ready);

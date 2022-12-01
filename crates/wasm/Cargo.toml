@@ -1,7 +1,7 @@
 [package]
-name = "sample-cairo-wasm"
-version = "0.1.0"
-edition = "2021"
+name = "cairo-wasm"
+version.workspace = true
+edition.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -12,6 +12,17 @@ default = ["console_error_panic_hook"]
 [dependencies]
 serde_json = "1.0.87"
 wasm-bindgen = "0.2.63"
+anyhow.workspace = true
+clap.workspace = true
+compiler = { path = "../compiler" }
+casm = { path = "../casm" }
+sierra = { path = "../sierra" }
+sierra_gas = { path = "../sierra_gas" }
+sierra_generator = { path = "../sierra_generator" }
+sierra_to_casm = { path = "../sierra_to_casm" }
+itertools.workspace = true
+salsa.workspace = true
+thiserror.workspace = true
 
 # The `console_error_panic_hook` crate provides better debugging of panics by
 # logging them with `console.error`. This is great for development, but requires

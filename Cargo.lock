@@ -259,6 +259,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "cairo-wasm"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cairo-rs 0.1.0 (git+https://github.com/lambdaclass/cairo-rs.git?rev=4f36aaf46dea8cac158d0da5e80537388e048c01)",
+ "casm",
+ "clap 4.0.26",
+ "compiler",
+ "console_error_panic_hook",
+ "itertools",
+ "salsa",
+ "serde_json",
+ "sierra",
+ "sierra_gas",
+ "sierra_generator",
+ "sierra_to_casm",
+ "thiserror",
+ "wasm-bindgen",
+ "wasm-bindgen-test",
+ "wee_alloc",
+]
+
+[[package]]
 name = "casm"
 version = "0.1.0"
 dependencies = [
@@ -1845,18 +1868,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "sample-cairo-wasm"
-version = "0.1.0"
-dependencies = [
- "cairo-rs 0.1.0 (git+https://github.com/lambdaclass/cairo-rs.git?rev=4f36aaf46dea8cac158d0da5e80537388e048c01)",
- "console_error_panic_hook",
- "serde_json",
- "wasm-bindgen",
- "wasm-bindgen-test",
- "wee_alloc",
 ]
 
 [[package]]

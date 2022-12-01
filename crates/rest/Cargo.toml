@@ -17,5 +17,5 @@ salsa.workspace = true
 thiserror.workspace = true
 
 [[bin]]
-name = "cairo-run"
+name = "cairo-rest"
 path = "src/cli.rs"

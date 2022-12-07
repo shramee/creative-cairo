@@ -639,7 +639,7 @@ End:
 test_function_lowering
 
 //! > function
-func foo(z: felt) {
+func foo(mut z: felt) {
     match bar(z) {
         MyEnum::a((x, (y, z))) => {},
         MyEnum::b((x, y)) => {},
@@ -666,7 +666,7 @@ enum MyEnum {
   g: (felt,),
   h: felt
 }
-extern func bar(ref r: felt) -> MyEnum implicits(rc: RangeCheck) nopanic;
+extern func bar(ref r: felt) -> MyEnum implicits(RangeCheck) nopanic;
 
 //! > semantic_diagnostics
 
@@ -823,7 +823,7 @@ End:
 test_function_lowering
 
 //! > function
-func foo(z: felt) {
+func foo(mut z: felt) {
     let y = bar(z);
     match y {
         MyEnum::a((x, (y, z))) => {},
@@ -851,7 +851,7 @@ enum MyEnum {
   g: (felt,),
   h: felt
 }
-extern func bar(ref r: felt) -> MyEnum implicits(rc: RangeCheck) nopanic;
+extern func bar(ref r: felt) -> MyEnum implicits(RangeCheck) nopanic;
 
 //! > semantic_diagnostics
 

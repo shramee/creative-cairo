@@ -6,7 +6,7 @@ use defs::db::PluginDiagnostic;
 use defs::diagnostic_utils::StableLocation;
 use defs::ids::{
     EnumId, GenericFunctionId, ImplFunctionId, ImplId, ModuleFileId, StructId,
-    TopLevelLanguageElementId, TraitId,
+    TopLevelLanguageElementId, TraitFunctionId, TraitId,
 };
 use diagnostics::{DiagnosticEntry, DiagnosticLocation, Diagnostics, DiagnosticsBuilder};
 use smol_str::SmolStr;
@@ -151,6 +151,46 @@ impl DiagnosticEntry for SemanticDiagnostic {
                     actual_ty.format(db)
                 )
             }
+            SemanticDiagnosticKind::TraitParamMutable { trait_id, function_id } => {
+                let defs_db = db.upcast();
+                format!(
+                    "Parameter of trait function `{}::{}` can't be defined as mutable.",
+                    trait_id.name(defs_db),
+                    function_id.name(defs_db),
+                )
+            }
+            SemanticDiagnosticKind::ParamaterShouldBeReference {
+                impl_id,
+                impl_function_id,
+                trait_id,
+            } => {
+                let defs_db = db.upcast();
+                let function_name = impl_function_id.name(defs_db);
+                format!(
+                    "Parameter of impl function {}::{} is incompatible with {}::{}. It should be \
+                     a reference.",
+                    impl_id.name(defs_db),
+                    function_name,
+                    trait_id.name(defs_db),
+                    function_name,
+                )
+            }
+            SemanticDiagnosticKind::ParamaterShouldNotBeReference {
+                impl_id,
+                impl_function_id,
+                trait_id,
+            } => {
+                let defs_db = db.upcast();
+                let function_name = impl_function_id.name(defs_db);
+                format!(
+                    "Parameter of impl function {}::{} is incompatible with {}::{}. It should not \
+                     be a reference.",
+                    impl_id.name(defs_db),
+                    function_name,
+                    trait_id.name(defs_db),
+                    function_name,
+                )
+            }
             SemanticDiagnosticKind::WrongArgumentType { expected_ty, actual_ty } => {
                 format!(
                     r#"Unexpected argument type. Expected: "{}", found: "{}"."#,
@@ -246,6 +286,9 @@ impl DiagnosticEntry for SemanticDiagnostic {
             SemanticDiagnosticKind::InvalidMemberExpression => "Invalid member expression.".into(),
             SemanticDiagnosticKind::InvalidPath => "Invalid path.".into(),
             SemanticDiagnosticKind::RefArgNotAVariable => "ref argument must be a variable.".into(),
+            SemanticDiagnosticKind::RefArgNotMutable => {
+                "ref argument must be a mutable variable.".into()
+            }
             SemanticDiagnosticKind::AssignmentToImmutableVar => {
                 "Cannot assign to an immutable variable.".into()
             }
@@ -381,6 +424,20 @@ pub enum SemanticDiagnosticKind {
         expected_ty: semantic::TypeId,
         actual_ty: semantic::TypeId,
     },
+    TraitParamMutable {
+        trait_id: TraitId,
+        function_id: TraitFunctionId,
+    },
+    ParamaterShouldBeReference {
+        impl_id: ImplId,
+        impl_function_id: ImplFunctionId,
+        trait_id: TraitId,
+    },
+    ParamaterShouldNotBeReference {
+        impl_id: ImplId,
+        impl_function_id: ImplFunctionId,
+        trait_id: TraitId,
+    },
     WrongArgumentType {
         expected_ty: semantic::TypeId,
         actual_ty: semantic::TypeId,
@@ -439,6 +496,7 @@ pub enum SemanticDiagnosticKind {
         ty: semantic::TypeId,
     },
     RefArgNotAVariable,
+    RefArgNotMutable,
     AssignmentToImmutableVar,
     InvalidLhsForAssignment,
     InvalidMemberExpression,

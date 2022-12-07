@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use sierra::extensions::core::{CoreLibFunc, CoreType, CoreTypeConcrete};
 use sierra::extensions::non_zero::NonZeroConcreteType;
+use sierra::extensions::starknet::StarkNetTypeConcrete;
 use sierra::ids::ConcreteTypeId;
 use sierra::program::Program;
 use sierra::program_registry::ProgramRegistry;
@@ -19,10 +20,13 @@ pub fn get_type_size_map(
         let size = match ty {
             CoreTypeConcrete::Felt(_)
             | CoreTypeConcrete::GasBuiltin(_)
+            | CoreTypeConcrete::BuiltinCost(_)
             | CoreTypeConcrete::Uint128(_)
             | CoreTypeConcrete::RangeCheck(_)
             | CoreTypeConcrete::Box(_)
-            | CoreTypeConcrete::Pedersen(_) => Some(1),
+            | CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::SyscallPtr(_)) => Some(1),
+            CoreTypeConcrete::StarkNet(StarkNetTypeConcrete::StorageAddress(_)) => Some(1),
+            CoreTypeConcrete::Pedersen(_) => Some(1),
             CoreTypeConcrete::Array(_)
             | CoreTypeConcrete::DictFeltTo(_)
             | CoreTypeConcrete::SquashedDictFeltTo(_) => Some(2),

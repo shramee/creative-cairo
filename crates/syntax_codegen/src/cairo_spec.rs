@@ -60,9 +60,11 @@ pub fn get_spec() -> Vec<Node> {
             .node_with_explicit_kind("Not", "TerminalNot")
             .node_with_explicit_kind("Mul", "TerminalMul")
             .node_with_explicit_kind("Div", "TerminalDiv")
+            .node_with_explicit_kind("Mod", "TerminalMod")
             .node_with_explicit_kind("Plus", "TerminalPlus")
             .node_with_explicit_kind("Minus", "TerminalMinus")
             .node_with_explicit_kind("EqEq", "TerminalEqEq")
+            .node_with_explicit_kind("Neq", "TerminalNeq")
             .node_with_explicit_kind("Eq", "TerminalEq")
             // TODO(yuval): not yet implemented in parser.
             .node_with_explicit_kind("And", "TerminalAnd")
@@ -196,7 +198,7 @@ pub fn get_spec() -> Vec<Node> {
         .node("rparen", "TerminalRParen")
         )
     // --- Type clauses ---
-    // TODO(yuval): support SimpleExpr instead of ExprPath
+    // TODO(yuval): support SimpleExpr instead of Expr
     .add_struct(StructBuilder::new("TypeClause").node("colon", "TerminalColon").node("ty", "Expr"))
     .add_option("TypeClause")
     .add_struct(StructBuilder::new("ReturnTypeClause")
@@ -250,9 +252,10 @@ pub fn get_spec() -> Vec<Node> {
     .add_struct(StructBuilder::new("ImplicitsClause")
         .node("implicits_kw", "TerminalImplicits")
         .node("lparen", "TerminalLParen")
-        .node("implicits", "ParamList")
+        .node("implicits", "ImplicitsList")
         .node("rparen", "TerminalRParen")
         )
+    .add_separated_list("ImplicitsList", "ExprPath", "TerminalComma")
     .add_option("ImplicitsClause")
     .add_option("TerminalNoPanic")
     // TODO(spapini): Add generic params.
@@ -457,6 +460,7 @@ pub fn get_spec() -> Vec<Node> {
     .add_token_and_terminal("Minus")
     .add_token_and_terminal("Mul")
     .add_token_and_terminal("Div")
+    .add_token_and_terminal("Mod")
     .add_token_and_terminal("Colon")
     .add_token_and_terminal("ColonColon")
     .add_token_and_terminal("Comma")

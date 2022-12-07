@@ -110,14 +110,23 @@ pub fn simulate<
                 iter.next(); // Ignore range check.
                 let arr = extract_matches!(iter.next().unwrap(), CoreValue::Array);
                 let idx = extract_matches!(iter.next().unwrap(), CoreValue::Uint128) as usize;
-                match arr.clone().get(idx) {
+                match arr.get(idx).cloned() {
                     Some(element) => {
-                        Ok((vec![CoreValue::RangeCheck, CoreValue::Array(arr), element.clone()], 0))
+                        Ok((vec![CoreValue::RangeCheck, CoreValue::Array(arr), element], 0))
                     }
                     None => Ok((vec![CoreValue::RangeCheck, CoreValue::Array(arr)], 1)),
                 }
             }
             [_, _, _] => Err(LibFuncSimulationError::MemoryLayoutMismatch),
+            _ => Err(LibFuncSimulationError::WrongNumberOfArgs),
+        },
+        Array(ArrayConcreteLibFunc::Len(_)) => match &inputs[..] {
+            [CoreValue::Array(_)] => {
+                let arr = extract_matches!(inputs.into_iter().next().unwrap(), CoreValue::Array);
+                let len = arr.len();
+                Ok((vec![CoreValue::Array(arr), CoreValue::Uint128(len as u128)], 0))
+            }
+            [_] => Err(LibFuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibFuncSimulationError::WrongNumberOfArgs),
         },
         Uint128(libfunc) => simulate_integer_libfunc(libfunc, &inputs),
@@ -222,6 +231,12 @@ pub fn simulate<
         CoreConcreteLibFunc::Pedersen(_) => {
             unimplemented!("Simulation of the Pedersen hash function is not implemented yet.");
         }
+        CoreConcreteLibFunc::BuiltinCost(_) => {
+            todo!("Simulation of the builtin cost functionality is not implemented yet.")
+        }
+        &CoreConcreteLibFunc::StarkNet(_) => {
+            unimplemented!("Simulation of the StarkNet functionalities is not implemented yet.")
+        }
     }
 }
 
@@ -257,33 +272,15 @@ fn simulate_integer_libfunc(
             Uint128BinaryOperationConcreteLibFunc { operator, .. },
         )) => match (inputs, operator) {
             (
-                [CoreValue::RangeCheck, CoreValue::Uint128(lhs), CoreValue::Uint128(rhs)],
-                IntOperator::WrappingAdd | IntOperator::WrappingSub | IntOperator::WrappingMul,
-            ) => Ok((
-                vec![
-                    CoreValue::RangeCheck,
-                    CoreValue::Uint128(match operator {
-                        IntOperator::WrappingAdd => lhs.wrapping_add(*rhs),
-                        IntOperator::WrappingSub => lhs.wrapping_sub(*rhs),
-                        IntOperator::WrappingMul => lhs.wrapping_mul(*rhs),
-                        _ => unreachable!("Arm only handles these cases."),
-                    }),
-                ],
-                0,
-            )),
-            (
                 [CoreValue::RangeCheck, CoreValue::Uint128(lhs), CoreValue::NonZero(non_zero)],
-                IntOperator::Div | IntOperator::Mod,
+                IntOperator::DivMod,
             ) => {
                 if let CoreValue::Uint128(rhs) = **non_zero {
                     Ok((
                         vec![
                             CoreValue::RangeCheck,
-                            CoreValue::Uint128(match operator {
-                                IntOperator::Div => lhs / rhs,
-                                IntOperator::Mod => lhs % rhs,
-                                _ => unreachable!("Arm only handles these cases."),
-                            }),
+                            CoreValue::Uint128(lhs / rhs),
+                            CoreValue::Uint128(lhs % rhs),
                         ],
                         0,
                     ))
@@ -293,18 +290,18 @@ fn simulate_integer_libfunc(
             }
             (
                 [CoreValue::RangeCheck, CoreValue::Uint128(lhs), CoreValue::Uint128(rhs)],
-                IntOperator::Add | IntOperator::Sub | IntOperator::Mul,
-            ) => Ok(
-                match match operator {
-                    IntOperator::Add => lhs.checked_add(*rhs),
-                    IntOperator::Sub => lhs.checked_sub(*rhs),
-                    IntOperator::Mul => lhs.checked_mul(*rhs),
+                IntOperator::OverflowingAdd
+                | IntOperator::OverflowingSub
+                | IntOperator::OverflowingMul,
+            ) => {
+                let (value, overflow) = match operator {
+                    IntOperator::OverflowingAdd => lhs.overflowing_add(*rhs),
+                    IntOperator::OverflowingSub => lhs.overflowing_sub(*rhs),
+                    IntOperator::OverflowingMul => lhs.overflowing_mul(*rhs),
                     _ => unreachable!("Arm only handles these cases."),
-                } {
-                    Some(result) => (vec![CoreValue::RangeCheck, CoreValue::Uint128(result)], 0),
-                    None => (vec![CoreValue::RangeCheck], 1),
-                },
-            ),
+                };
+                Ok((vec![CoreValue::RangeCheck, CoreValue::Uint128(value)], usize::from(overflow)))
+            }
             ([_, _, _], _) => Err(LibFuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibFuncSimulationError::WrongNumberOfArgs),
         },
@@ -312,37 +309,25 @@ fn simulate_integer_libfunc(
             Uint128OperationWithConstConcreteLibFunc { operator, c, .. },
         )) => match inputs {
             [CoreValue::RangeCheck, CoreValue::Uint128(value)] => Ok(match operator {
-                IntOperator::WrappingAdd
-                | IntOperator::WrappingSub
-                | IntOperator::WrappingMul
-                | IntOperator::Div
-                | IntOperator::Mod => (
+                IntOperator::OverflowingAdd
+                | IntOperator::OverflowingSub
+                | IntOperator::OverflowingMul => {
+                    let (value, overflow) = match operator {
+                        IntOperator::OverflowingAdd => value.overflowing_add(*c),
+                        IntOperator::OverflowingSub => value.overflowing_sub(*c),
+                        IntOperator::OverflowingMul => value.overflowing_mul(*c),
+                        _ => unreachable!("Arm only handles these cases."),
+                    };
+                    (vec![CoreValue::RangeCheck, CoreValue::Uint128(value)], usize::from(overflow))
+                }
+                IntOperator::DivMod => (
                     vec![
                         CoreValue::RangeCheck,
-                        CoreValue::Uint128(match operator {
-                            IntOperator::WrappingAdd => value.wrapping_add(*c),
-                            IntOperator::WrappingSub => value.wrapping_sub(*c),
-                            IntOperator::WrappingMul => value.wrapping_mul(*c),
-                            IntOperator::Div => value / *c,
-                            IntOperator::Mod => value % *c,
-                            _ => unreachable!("Arm only handles these cases."),
-                        }),
+                        CoreValue::Uint128(value / *c),
+                        CoreValue::Uint128(value % *c),
                     ],
                     0,
                 ),
-                IntOperator::Add | IntOperator::Sub | IntOperator::Mul => {
-                    match match operator {
-                        IntOperator::Add => value.checked_add(*c),
-                        IntOperator::Sub => value.checked_sub(*c),
-                        IntOperator::Mul => value.checked_mul(*c),
-                        _ => unreachable!("Arm only handles these cases."),
-                    } {
-                        Some(result) => {
-                            (vec![CoreValue::RangeCheck, CoreValue::Uint128(result)], 0)
-                        }
-                        None => (vec![CoreValue::RangeCheck], 1),
-                    }
-                }
             }),
             [_, _] => Err(LibFuncSimulationError::MemoryLayoutMismatch),
             _ => Err(LibFuncSimulationError::WrongNumberOfArgs),

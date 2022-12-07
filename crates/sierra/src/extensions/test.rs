@@ -46,6 +46,7 @@ impl TypeSpecializationContext for MockSpecializationContext {
             || id == "NonZeroInt".into()
             || id == "Tuple<>".into()
             || id == "Uint128AndFelt".into()
+            || id == "StorageAddress".into()
         {
             Some(TypeInfo {
                 long_id: self.mapping.get_by_left(&id)?.clone(),
@@ -70,7 +71,7 @@ impl TypeSpecializationContext for MockSpecializationContext {
                 duplicatable: false,
                 size: 0,
             })
-        } else if id == "GasBuiltin".into() {
+        } else if id == "GasBuiltin".into() || id == "SyscallPtr".into() {
             Some(TypeInfo {
                 long_id: self.mapping.get_by_left(&id)?.clone(),
                 storable: true,
@@ -170,6 +171,8 @@ impl SpecializationContext for MockSpecializationContext {
             "Struct<name, UninitializedFelt>")]
 #[test_case("Struct", vec![type_arg("uint128"), type_arg("felt")] => Err(UnsupportedGenericArg);
             "Struct<uint128, felt>")]
+#[test_case("SyscallPtr", vec![] => Ok(()); "SyscallPtr")]
+#[test_case("StorageAddress", vec![] => Ok(()); "StorageAddress")]
 fn find_type_specialization(
     id: &str,
     generic_args: Vec<GenericArg>,
@@ -191,6 +194,10 @@ fn find_type_specialization(
 #[test_case("array_new", vec![type_arg("uint128")] => Ok(()); "array_new<uint128>")]
 #[test_case("array_append", vec![] => Err(WrongNumberOfGenericArgs); "array_append")]
 #[test_case("array_append", vec![type_arg("uint128")] => Ok(()); "array_append<uint128>")]
+#[test_case("array_at", vec![] => Err(WrongNumberOfGenericArgs); "array_at")]
+#[test_case("array_at", vec![type_arg("uint128")] => Ok(()); "array_at<uint128>")]
+#[test_case("array_len", vec![] => Err(WrongNumberOfGenericArgs); "array_len")]
+#[test_case("array_len", vec![type_arg("uint128")] => Ok(()); "array_len<uint128>")]
 #[test_case("get_gas", vec![value_arg(0)] => Err(WrongNumberOfGenericArgs); "get_gas<0>")]
 #[test_case("get_gas", vec![] => Ok(()); "get_gas")]
 #[test_case("refund_gas", vec![value_arg(0)] => Err(WrongNumberOfGenericArgs); "refund_gas<0>")]
@@ -202,26 +209,25 @@ fn find_type_specialization(
 #[test_case("felt_jump_nz", vec![] => Ok(()); "felt_jump_nz<>")]
 #[test_case("felt_jump_nz", vec![type_arg("felt")]
             => Err(WrongNumberOfGenericArgs); "felt_jump_nz<int>")]
-#[test_case("uint128_wrapping_add", vec![] => Ok(()); "uint128_wrapping_add")]
-#[test_case("uint128_wrapping_sub", vec![] => Ok(()); "uint128_wrapping_sub")]
-#[test_case("uint128_wrapping_mul", vec![] => Ok(()); "uint128_wrapping_mul")]
-#[test_case("uint128_div", vec![] => Ok(()); "uint128_div")]
-#[test_case("uint128_mod", vec![] => Ok(()); "uint128_mod")]
-#[test_case("uint128_wrapping_add", vec![value_arg(2)] => Ok(()); "int_add<2>")]
-#[test_case("uint128_wrapping_sub", vec![value_arg(5)] => Ok(()); "int_sub<5>")]
-#[test_case("uint128_wrapping_mul", vec![value_arg(7)] => Ok(()); "int_mul<7>")]
-#[test_case("uint128_div", vec![value_arg(9)] => Ok(()); "uint128_div<9>")]
-#[test_case("uint128_div", vec![value_arg(0)] => Err(UnsupportedGenericArg); "uint128_div<0>")]
-#[test_case("uint128_mod", vec![value_arg(1)] => Ok(()); "uint128_mod<1>")]
-#[test_case("uint128_mod", vec![value_arg(0)] => Err(UnsupportedGenericArg); "uint128_mod<0>")]
+#[test_case("uint128_overflow_add", vec![] => Ok(()); "uint128_overflow_add")]
+#[test_case("uint128_overflow_sub", vec![] => Ok(()); "uint128_overflow_sub")]
+#[test_case("uint128_overflow_mul", vec![] => Ok(()); "uint128_overflow_mul")]
+#[test_case("uint128_safe_divmod", vec![] => Ok(()); "uint128_safe_divmod")]
+#[test_case("uint128_overflow_add", vec![value_arg(2)] => Ok(()); "int_add<2>")]
+#[test_case("uint128_overflow_sub", vec![value_arg(5)] => Ok(()); "int_sub<5>")]
+#[test_case("uint128_overflow_mul", vec![value_arg(7)] => Ok(()); "int_mul<7>")]
+#[test_case("uint128_safe_divmod", vec![value_arg(9)] => Ok(()); "uint128_safe_divmod<9>")]
+#[test_case("uint128_safe_divmod", vec![value_arg(0)] => Err(UnsupportedGenericArg); "uint128_safe_divmod<0>")]
 #[test_case("uint128_const", vec![value_arg(8)] => Ok(()); "uint128_const<8>")]
 #[test_case("uint128_const", vec![] => Err(UnsupportedGenericArg); "uint128_const")]
 #[test_case("drop", vec![type_arg("uint128")] => Ok(()); "drop<uint128>")]
 #[test_case("drop", vec![] => Err(WrongNumberOfGenericArgs); "drop<>")]
-#[test_case("drop", vec![type_arg("GasBuiltin")] => Err(UnsupportedGenericArg); "drop<GasBuiltin>")]
+#[test_case("drop", vec![type_arg("GasBuiltin")] => Err(UnsupportedGenericArg);
+"drop<GasBuiltin>")]
 #[test_case("dup", vec![type_arg("uint128")] => Ok(()); "dup<uint128>")]
 #[test_case("dup", vec![] => Err(WrongNumberOfGenericArgs); "dup<>")]
-#[test_case("dup", vec![type_arg("GasBuiltin")] => Err(UnsupportedGenericArg); "dup<GasBuiltin>")]
+#[test_case("dup", vec![type_arg("GasBuiltin")] => Err(UnsupportedGenericArg);
+"dup<GasBuiltin>")]
 #[test_case("uint128_jump_nz", vec![] => Ok(()); "uint128_jump_nz<>")]
 #[test_case("uint128_jump_nz", vec![type_arg("uint128")]
             => Err(WrongNumberOfGenericArgs); "uint128_jump_nz<uint128>")]
@@ -244,12 +250,16 @@ fn find_type_specialization(
 #[test_case("jump", vec![] => Ok(()); "jump")]
 #[test_case("jump", vec![type_arg("T")] => Err(WrongNumberOfGenericArgs); "jump<T>")]
 #[test_case("revoke_ap_tracking", vec![] => Ok(()); "revoke_ap_tracking")]
-#[test_case("enum_init", vec![type_arg("Option"), value_arg(0)] => Ok(()); "enum_init<Option,0>")]
-#[test_case("enum_init", vec![type_arg("Option"), value_arg(1)] => Ok(());"enum_init<Option,1>")]
+#[test_case("enum_init", vec![type_arg("Option"), value_arg(0)] => Ok(());
+"enum_init<Option,0>")]
+#[test_case("enum_init", vec![type_arg("Option"), value_arg(1)] =>
+Ok(());"enum_init<Option,1>")]
 #[test_case("enum_init", vec![type_arg("Option"), value_arg(2)]
-            => Err(IndexOutOfRange{index: BigInt::from(2), range_size: 2}); "enum_init<Option,2>")]
+            => Err(IndexOutOfRange{index: BigInt::from(2), range_size: 2});
+"enum_init<Option,2>")]
 #[test_case("enum_init", vec![type_arg("Option"), value_arg(-3)]
-            => Err(IndexOutOfRange{index: BigInt::from(-3), range_size: 2}); "enum_init<Option,-3>")]
+            => Err(IndexOutOfRange{index: BigInt::from(-3), range_size: 2});
+"enum_init<Option,-3>")]
 #[test_case("enum_init", vec![type_arg("Option")]
             => Err(WrongNumberOfGenericArgs); "enum_init<Option>")]
 #[test_case("enum_init", vec![value_arg(0)] => Err(WrongNumberOfGenericArgs); "enum_init<0>")]
@@ -271,6 +281,7 @@ fn find_type_specialization(
             "struct_deconstruct<Uint128AndFelt>")]
 #[test_case("struct_deconstruct", vec![value_arg(4)] => Err(UnsupportedGenericArg);
             "struct_deconstruct<4>")]
+#[test_case("storage_read_syscall", vec![] => Ok(()); "storage_read_syscall")]
 fn find_libfunc_specialization(
     id: &str,
     generic_args: Vec<GenericArg>,

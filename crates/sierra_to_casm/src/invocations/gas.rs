@@ -2,7 +2,8 @@ use casm::ap_change::ApplyApChange;
 use casm::casm;
 use casm::operand::DerefOrImmediate;
 use itertools::chain;
-use num_bigint::ToBigInt;
+use num_bigint::BigInt;
+use sierra::extensions::builtin_cost::CostTokenType;
 use sierra::extensions::felt::FeltOperator;
 use sierra::extensions::gas::GasConcreteLibFunc;
 use sierra::program::{BranchInfo, BranchTarget};
@@ -28,13 +29,12 @@ pub fn build(
 fn build_get_gas(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
-    // TODO(orizi): Add Range-Check usage.
     let requested_count = builder
         .program_info
         .metadata
         .gas_info
         .variable_values
-        .get(&builder.idx)
+        .get(&(builder.idx, CostTokenType::Step))
         .ok_or(InvocationError::UnknownVariableData)?;
     let (range_check_expression, gas_counter_expression) = match builder.refs {
         [
@@ -105,10 +105,11 @@ fn build_get_gas(
                     a: range_check.unchecked_apply_known_ap_change(2),
                     b: DerefOrImmediate::from(1),
                 })),
+                // TODO(orizi): Use the value the was computed above.
                 ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
                     op: FeltOperator::Sub,
                     a: gas_counter_value.unchecked_apply_known_ap_change(2),
-                    b: DerefOrImmediate::Immediate(requested_count.to_bigint().unwrap()),
+                    b: DerefOrImmediate::Immediate(BigInt::from(*requested_count)),
                 })),
             ]
             .into_iter(),
@@ -137,7 +138,7 @@ fn build_refund_gas(
         .metadata
         .gas_info
         .variable_values
-        .get(&builder.idx)
+        .get(&(builder.idx, CostTokenType::Step))
         .ok_or(InvocationError::UnknownVariableData)?;
     let expression = match builder.refs {
         [ReferenceValue { expression, .. }] => expression,
@@ -163,7 +164,7 @@ fn build_refund_gas(
             ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
                 op: FeltOperator::Add,
                 a: gas_counter_value,
-                b: DerefOrImmediate::Immediate(requested_count.to_bigint().unwrap()),
+                b: DerefOrImmediate::Immediate(BigInt::from(*requested_count)),
             }))
         }]
         .into_iter(),

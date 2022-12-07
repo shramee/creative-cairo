@@ -54,12 +54,12 @@ fn build_uint128_op(
 ) -> Result<CompiledInvocation, InvocationError> {
     let (range_check, a, b) = unwrap_range_check_based_binary_op_refs(&builder)?;
     match op {
-        IntOperator::Add | IntOperator::Sub => {
+        IntOperator::OverflowingAdd | IntOperator::OverflowingSub => {
             let failure_handle_statement_id = get_bool_comparison_target_statement_id(&builder);
             let uint128_limit: BigInt = BigInt::from(u128::MAX) + 1;
             // The code up to the success branch.
             let mut before_success_branch = match op {
-                IntOperator::Add => casm! {
+                IntOperator::OverflowingAdd => casm! {
                     [ap + 0] = a + b, ap++;
                     %{ memory[ap + 0] = memory [ap - 1] < (uint128_limit.clone()) %}
                     jmp rel 0 if [ap + 0] != 0, ap++;
@@ -69,7 +69,7 @@ fn build_uint128_op(
                     [ap - 1] = [[range_check.unchecked_apply_known_ap_change(3)]];
                     jmp rel 0; // Fixed in relocations.
                 },
-                IntOperator::Sub => casm! {
+                IntOperator::OverflowingSub => casm! {
                     a = [ap + 0] + b, ap++;
                     %{ memory[ap + 0] = memory [ap - 1] < (uint128_limit.clone())  %}
                     jmp rel 0 if [ap + 0] != 0, ap++;
@@ -104,22 +104,59 @@ fn build_uint128_op(
                         ReferenceExpression::from_cell(CellExpression::Deref(ap_cell_ref(-2))),
                     ]
                     .into_iter(),
-                    vec![ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
-                        op: FeltOperator::Add,
-                        a: range_check.unchecked_apply_known_ap_change(3),
-                        b: DerefOrImmediate::from(1),
-                    }))]
+                    vec![
+                        ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
+                            op: FeltOperator::Add,
+                            a: range_check.unchecked_apply_known_ap_change(3),
+                            b: DerefOrImmediate::from(1),
+                        })),
+                        ReferenceExpression::from_cell(CellExpression::Deref(ap_cell_ref(-1))),
+                    ]
                     .into_iter(),
                 ]
                 .into_iter(),
             ))
         }
-        IntOperator::Mul
-        | IntOperator::Div
-        | IntOperator::Mod
-        | IntOperator::WrappingAdd
-        | IntOperator::WrappingSub
-        | IntOperator::WrappingMul => {
+        IntOperator::DivMod => {
+            let code = casm! {
+                %{ (memory[ap + 0], memory[ap + 1]) = divmod(a, b) %}
+                // Both `q` and `r` must be uint128.
+                // We must check `r` explicitly: we later check that `0 <= b - (r + 1)` and
+                // `b * q + r = a`, however, if `r = -1` we may pass both of these checks (say, if
+                // `b = a + 1` and `q = 1`).
+                // We must also check `q` explicitly; the only arithmetic constraint on `q` is
+                // `b * q + r = a`, and if `b = 2`, `a = 1` and `r = 0`, we can take `q` to be the
+                // inverse of 2 (`(PRIME + 1) / 2`, much larger than 2^128) and pass this
+                // constraint.
+                [ap + 0] = [[range_check]], ap++;
+                [ap + 0] = [[range_check.unchecked_apply_known_ap_change(1)] + 1], ap++;
+                // Verify `r < b` by constraining `0 <= b - (r + 1)`.
+                [ap + 0] = [ap + -1] + 1, ap++;
+                (b.unchecked_apply_known_ap_change(3)) = [ap + 0] + [ap + -1], ap++;
+                [ap + -1] = [[range_check.unchecked_apply_known_ap_change(4)] + 2], ap++;
+                // Verify `b * q + r = a`.
+                [ap + -1] = [ap + -5] * (b.unchecked_apply_known_ap_change(5));
+                (a.unchecked_apply_known_ap_change(5)) = [ap + -1] + [ap + -4];
+            };
+            Ok(builder.build(
+                code.instructions,
+                vec![],
+                vec![
+                    vec![
+                        ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
+                            op: FeltOperator::Add,
+                            a: range_check.unchecked_apply_known_ap_change(5),
+                            b: DerefOrImmediate::from(3),
+                        })),
+                        ReferenceExpression::from_cell(CellExpression::Deref(ap_cell_ref(-5))),
+                        ReferenceExpression::from_cell(CellExpression::Deref(ap_cell_ref(-4))),
+                    ]
+                    .into_iter(),
+                ]
+                .into_iter(),
+            ))
+        }
+        IntOperator::OverflowingMul => {
             Err(InvocationError::NotImplemented(builder.invocation.clone()))
         }
     }
@@ -156,7 +193,7 @@ fn build_uint128_from_felt(
                 jmp rel 0 if [ap + 0] != 0, ap++; // Jump to success branch. Address updated later.
                 // Overflow:
                 %{ (memory[ap + 0], memory[ap + 1]) = divmod(
-                    memory (range_check.unchecked_apply_known_ap_change(1)),
+                    memory (value.unchecked_apply_known_ap_change(1)),
                     (uint128_limit.clone())
                 ) %}
                 ap += 2;
@@ -214,7 +251,7 @@ fn build_uint128_from_felt(
                 ]
                 .into_iter(),
                 vec![ReferenceExpression::from_cell(CellExpression::Deref(
-                    range_check.unchecked_apply_known_ap_change(4),
+                    range_check.unchecked_apply_known_ap_change(5),
                 ))]
                 .into_iter(),
             ]
@@ -224,9 +261,9 @@ fn build_uint128_from_felt(
                 builder.build(casm! { ap += 1; }.instructions, vec![], output_expressions)
             } else {
                 builder.build(
-                    casm! { ap += 4; jmp rel 0; }.instructions,
+                    casm! { ap += 5; jmp rel 0; }.instructions,
                     vec![RelocationEntry {
-                        instruction_idx: 0,
+                        instruction_idx: 1,
                         relocation: Relocation::RelativeStatementId(failure_handle_statement_id),
                     }],
                     output_expressions,

@@ -1,6 +1,8 @@
+use casm::ap_change::ApplyApChange;
 use casm::casm;
 use casm::operand::{ap_cell_ref, CellRef, DerefOrImmediate};
-use num_bigint::ToBigInt;
+use itertools::chain;
+use num_bigint::BigInt;
 use sierra::extensions::array::ArrayConcreteLibFunc;
 use sierra::extensions::felt::FeltOperator;
 use sierra::extensions::ConcreteLibFunc;
@@ -8,12 +10,15 @@ use sierra::ids::ConcreteTypeId;
 use utils::try_extract_matches;
 
 use super::{
-    CompiledInvocation, CompiledInvocationBuilder, InvocationError, ReferenceExpressionView,
+    patch_jnz_to_end, CompiledInvocation, CompiledInvocationBuilder, InvocationError,
+    ReferenceExpressionView,
 };
-use crate::invocations::ProgramInfo;
+use crate::invocations::{get_bool_comparison_target_statement_id, ProgramInfo};
 use crate::references::{
-    BinOpExpression, CellExpression, ReferenceExpression, ReferenceValue, ReferencesError,
+    try_unpack_deref, BinOpExpression, CellExpression, ReferenceExpression, ReferenceValue,
+    ReferencesError,
 };
+use crate::relocations::{Relocation, RelocationEntry};
 
 /// Builds instructions for Sierra array operations.
 pub fn build(
@@ -23,13 +28,12 @@ pub fn build(
     match libfunc {
         ArrayConcreteLibFunc::New(_) => build_array_new(builder),
         ArrayConcreteLibFunc::Append(_) => build_array_append(builder),
-        ArrayConcreteLibFunc::At(_) => {
-            Err(InvocationError::NotImplemented(builder.invocation.clone()))
-        }
+        ArrayConcreteLibFunc::At(_) => build_array_at(builder),
+        ArrayConcreteLibFunc::Len(_) => build_array_len(builder),
     }
 }
 
-/// Handles instruction for creating a new array.
+/// Handles a Sierra statement for creating a new array.
 fn build_array_new(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
@@ -58,7 +62,7 @@ fn build_array_new(
     ))
 }
 
-/// Handles instruction for appending an element to an array.
+/// Handles a Sierra statement for appending an element to an array.
 fn build_array_append(
     builder: CompiledInvocationBuilder<'_>,
 ) -> Result<CompiledInvocation, InvocationError> {
@@ -108,6 +112,154 @@ fn build_array_append(
     }
 }
 
+/// Handles a Sierra statement for fetching an array element at a specific index.
+fn build_array_at(
+    builder: CompiledInvocationBuilder<'_>,
+) -> Result<CompiledInvocation, InvocationError> {
+    let (range_check, array_view, index) = match builder.refs {
+        [
+            ReferenceValue { expression: expr_range_check, .. },
+            ReferenceValue { expression: expr_arr, .. },
+            ReferenceValue { expression: expr_value, .. },
+        ] => {
+            let concrete_array_type = &builder.libfunc.param_signatures()[0].ty;
+            let array_view =
+                ArrayView::try_get_view(expr_arr, &builder.program_info, concrete_array_type)
+                    .map_err(|_| InvocationError::InvalidReferenceExpressionForArgument)?;
+            let elem_value = match expr_value
+                .try_unpack_single()
+                .map_err(|_| InvocationError::InvalidReferenceExpressionForArgument)?
+            {
+                CellExpression::Deref(op) => DerefOrImmediate::Deref(op),
+                CellExpression::Immediate(op) => DerefOrImmediate::from(op),
+                _ => return Err(InvocationError::InvalidReferenceExpressionForArgument),
+            };
+            (try_unpack_deref(expr_range_check)?, array_view, elem_value)
+        }
+        refs => {
+            return Err(InvocationError::WrongNumberOfArguments {
+                expected: 3,
+                actual: refs.len(),
+            });
+        }
+    };
+
+    if array_view.end_offset != 0 {
+        // TODO(Gil): handle when DoubleDeref will support a BinOp variant, e.g. [[ap+1]+1]
+        return Err(InvocationError::NotImplemented(builder.invocation.clone()));
+    }
+
+    match index {
+        DerefOrImmediate::Immediate(_) => {
+            // TODO(Gil): handle when assertion of immediate to DoubleDeref (e.g. [[ap+0]] = 1)
+            // will be supported.
+            Err(InvocationError::NotImplemented(builder.invocation.clone()))
+        }
+        DerefOrImmediate::Deref(index_cell) => {
+            let mut index_out_of_bounds_branch = casm! {
+                // Compute the length of the array: [ap + 0]=end-start. The index is a uint128 type
+                // so there are no overflow issues.
+                (array_view.end) = [ap + 0] + (array_view.start), ap++;
+                // Check index is in range.
+                %{ memory[ap + 0] = (index.unchecked_apply_known_ap_change(1)) < memory[ap + -1] %}
+                jmp rel 0 if [ap + 0] != 0, ap++;
+                // Index out of bounds.
+                // Compute index - length.
+                (index_cell.unchecked_apply_known_ap_change(2)) = [ap + 0] + [ap + -2], ap++;
+                // Assert index - length >= 0.
+                [ap + -1] = [[(range_check.unchecked_apply_known_ap_change(3))]];
+                jmp rel 0;
+            };
+            let success_branch = casm! {
+                // Assert index < length, or that length-(index+1) is in [0, 2^128).
+                // Compute index+1.
+                [ap + 0] = (index_cell.unchecked_apply_known_ap_change(2)) + 1, ap++;
+                // Compute length-(index+1).
+                [ap + -3] = [ap + 0] + [ap + -1], ap++;
+                // Assert length-(index+1) is in [0, 2^128).
+                [ap + -1] = [[(range_check.unchecked_apply_known_ap_change(4))]];
+                // Compute address of target cell.
+                [ap + 0] = (array_view.start.unchecked_apply_known_ap_change(4)) + (index_cell.unchecked_apply_known_ap_change(4)), ap++;
+            };
+
+            // Backpatch the JNZ target. It's the second instruction.
+            patch_jnz_to_end(&mut index_out_of_bounds_branch, 1);
+
+            // First (success) branch has AP change 4, second (failure) has AP change 3.
+            // Both branches invoke range check once. Success branch also outputs the double-deref
+            // (array cell value).
+            let relocation_idx = index_out_of_bounds_branch.instructions.len() - 1;
+            let instructions =
+                chain!(index_out_of_bounds_branch.instructions, success_branch.instructions)
+                    .collect();
+            let array_ref = array_view.to_reference_expression();
+            let relocations = vec![RelocationEntry {
+                instruction_idx: relocation_idx,
+                relocation: Relocation::RelativeStatementId(
+                    get_bool_comparison_target_statement_id(&builder),
+                ),
+            }];
+            let output_expressions = [
+                vec![
+                    ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
+                        op: FeltOperator::Add,
+                        a: range_check.unchecked_apply_known_ap_change(5),
+                        b: DerefOrImmediate::from(1),
+                    })),
+                    array_ref.clone(),
+                    ReferenceExpression::from_cell(CellExpression::DoubleDeref(ap_cell_ref(-1), 0)),
+                ]
+                .into_iter(),
+                vec![
+                    ReferenceExpression::from_cell(CellExpression::BinOp(BinOpExpression {
+                        op: FeltOperator::Add,
+                        a: range_check.unchecked_apply_known_ap_change(3),
+                        b: DerefOrImmediate::from(1),
+                    })),
+                    array_ref,
+                ]
+                .into_iter(),
+            ]
+            .into_iter();
+            Ok(builder.build(instructions, relocations, output_expressions))
+        }
+    }
+}
+
+/// Handles a Sierra statement for getting the length of an array.
+fn build_array_len(
+    builder: CompiledInvocationBuilder<'_>,
+) -> Result<CompiledInvocation, InvocationError> {
+    let array_view = match builder.refs {
+        [ReferenceValue { expression: expr_arr, .. }] => {
+            let concrete_array_type = &builder.libfunc.param_signatures()[0].ty;
+            ArrayView::try_get_view(expr_arr, &builder.program_info, concrete_array_type)
+                .map_err(|_| InvocationError::InvalidReferenceExpressionForArgument)?
+        }
+        refs => {
+            return Err(InvocationError::WrongNumberOfArguments {
+                expected: 1,
+                actual: refs.len(),
+            });
+        }
+    };
+    if array_view.end_offset != 0 {
+        // The array must be stored before calling to array_len, as it is not possible to return
+        // [end]-[start]+offset as a CellRef.
+        return Err(InvocationError::InvalidReferenceExpressionForArgument);
+    }
+    let len_ref_expr = ReferenceExpression {
+        cells: vec![CellExpression::BinOp(BinOpExpression {
+            op: FeltOperator::Sub,
+            a: array_view.end,
+            b: DerefOrImmediate::Deref(array_view.start),
+        })],
+    };
+
+    let output_expressions = [array_view.to_reference_expression(), len_ref_expr].into_iter();
+    Ok(builder.build_only_reference_changes(output_expressions))
+}
+
 /// A struct representing an actual array value in the Sierra program.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ArrayView {
@@ -119,7 +271,8 @@ pub struct ArrayView {
     pub end: CellRef,
     /// The number of elements appended to the array since the last store. The real end of the
     /// array is in the address \[end\] + end_offset.
-    pub end_offset: u16,
+    /// Never negative.
+    pub end_offset: i16,
 }
 
 impl ReferenceExpressionView for ArrayView {
@@ -136,14 +289,14 @@ impl ReferenceExpressionView for ArrayView {
         let start = try_extract_matches!(expr.cells[0], CellExpression::Deref)
             .ok_or(ReferencesError::InvalidReferenceTypeForArgument)?;
         let (end, end_offset) = match &expr.cells[1] {
-            CellExpression::Deref(op) => (*op, 0u16),
+            CellExpression::Deref(op) => (*op, 0),
             CellExpression::BinOp(binop) => {
                 if binop.op != FeltOperator::Add {
                     return Err(ReferencesError::InvalidReferenceTypeForArgument);
                 }
                 (
                     binop.a,
-                    u16::try_from(
+                    i16::try_from(
                         try_extract_matches!(&binop.b, DerefOrImmediate::Immediate)
                             .ok_or(ReferencesError::InvalidReferenceTypeForArgument)?,
                     )
@@ -168,7 +321,7 @@ impl ReferenceExpressionView for ArrayView {
                     CellExpression::BinOp(BinOpExpression {
                         op: FeltOperator::Add,
                         a: self.end,
-                        b: DerefOrImmediate::Immediate(self.end_offset.to_bigint().unwrap()),
+                        b: DerefOrImmediate::Immediate(BigInt::from(self.end_offset)),
                     }),
                 ],
             }

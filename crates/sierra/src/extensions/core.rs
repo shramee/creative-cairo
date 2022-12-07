@@ -1,5 +1,6 @@
 use super::ap_tracking::RevokeApTrackingLibFunc;
 use super::array::{ArrayLibFunc, ArrayType};
+use super::builtin_cost::{BuiltinCostLibFunc, BuiltinCostType};
 use super::dict_felt_to::{DictFeltToLibFunc, DictFeltToType};
 use super::drop::DropLibFunc;
 use super::duplicate::DupLibFunc;
@@ -15,6 +16,7 @@ use super::modules::unconditional_jump::UnconditionalJumpLibFunc;
 use super::pedersen::{PedersenLibFunc, PedersenType};
 use super::range_check::RangeCheckType;
 use super::squashed_dict_felt_to::SquashedDictFeltToType;
+use super::starknet::{StarkNetLibFunc, StarkNetType};
 use super::strct::{StructLibFunc, StructType};
 use super::uninitialized::UninitializedType;
 use crate::{define_libfunc_hierarchy, define_type_hierarchy};
@@ -25,6 +27,7 @@ define_type_hierarchy! {
         Box(BoxType),
         Felt(FeltType),
         GasBuiltin(GasBuiltinType),
+        BuiltinCost(BuiltinCostType),
         Uint128(Uint128Type),
         NonZero(NonZeroType),
         RangeCheck(RangeCheckType),
@@ -34,6 +37,7 @@ define_type_hierarchy! {
         DictFeltTo(DictFeltToType),
         SquashedDictFeltTo(SquashedDictFeltToType),
         Pedersen(PedersenType),
+        StarkNet(StarkNetType),
     }, CoreTypeConcrete
 }
 
@@ -42,6 +46,7 @@ define_libfunc_hierarchy! {
         ApTracking(RevokeApTrackingLibFunc),
         Array(ArrayLibFunc),
         Box(BoxLibFunc),
+        BuiltinCost(BuiltinCostLibFunc),
         Drop(DropLibFunc),
         Dup(DupLibFunc),
         Felt(FeltLibFunc),
@@ -55,5 +60,6 @@ define_libfunc_hierarchy! {
         Struct(StructLibFunc),
         DictFeltTo(DictFeltToLibFunc),
         Pedersen(PedersenLibFunc),
+        StarkNet(StarkNetLibFunc),
     }, CoreConcreteLibFunc
 }

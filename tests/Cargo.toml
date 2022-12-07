@@ -14,19 +14,17 @@ num-bigint.workspace = true
 parser = { path = "../crates/parser" }
 plugins = { path = "../crates/plugins" }
 pretty_assertions = "1.2.1"
+runner = { path = "../crates/runner" }
 sierra = { path = "../crates/sierra" }
 sierra_gas = { path = "../crates/sierra_gas" }
 semantic = { path = "../crates/semantic", features = ["testing"] }
 sierra_generator = { path = "../crates/sierra_generator", features = ["testing"] }
 sierra_to_casm = { path = "../crates/sierra_to_casm", features = ["testing"] }
 syntax = { path = "../crates/syntax" }
+test_utils = { path = "../crates/test_utils" }
 salsa.workspace = true
 test-case.workspace = true
 
 [[test]]
 name = "examples_test"
 path = "examples_test.rs"
-
-[[test]]
-name = "cairo_level_tests"
-path = "cairo_level_tests.rs"

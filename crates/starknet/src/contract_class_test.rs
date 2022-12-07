@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use indoc::indoc;
 use num_bigint::BigUint;
 use pretty_assertions::assert_eq;
+use test_utils::compare_contents_or_fix_with_path;
 
 use crate::abi;
 use crate::contract_class::{compile_path, ContractClass, ContractEntryPoint, ContractEntryPoints};
@@ -52,52 +53,32 @@ fn test_serialization() {
 }
 
 /// Returns a path to example contract that matches `name`.
-pub fn get_example_file_path(name: &str) -> PathBuf {
+pub fn get_example_file_path(file_name: &str) -> PathBuf {
     // Pop the "/sierra_to_casm" suffix.
     let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    path.extend(["examples", &format!("{name}.cairo")].into_iter());
+    path.extend(["examples", file_name].into_iter());
     path
 }
 
 #[test]
 fn test_compile_path() {
-    let path = get_example_file_path("test_contract");
+    let path = get_example_file_path("test_contract.cairo");
 
     let replace_ids = true;
     let contract = compile_path(&path, replace_ids).unwrap();
 
-    assert_eq!(
+    compare_contents_or_fix_with_path(
+        &get_example_file_path("test_contract.sierra"),
         contract.sierra_program.to_string(),
-        indoc! {"
-          type felt = felt;
-
-          libfunc revoke_ap_tracking = revoke_ap_tracking;
-          libfunc felt_const<1> = felt_const<1>;
-          libfunc store_temp<felt> = store_temp<felt>;
-          libfunc burn_gas = burn_gas;
-
-          revoke_ap_tracking() -> ();
-          felt_const<1>() -> ([0]);
-          store_temp<felt>([0]) -> ([1]);
-          burn_gas() -> ();
-          return([1]);
-
-          test_contract::test_contract::test@0() -> (felt);
-          "
-        }
     );
 
-    assert_eq!(
-        serde_json::to_string_pretty(&contract.abi).unwrap(),
-        indoc! {r#"
-          [
-            {
-              "type": "function",
-              "name": "test",
-              "inputs": [],
-              "output_ty": "core::felt"
-            }
-          ]"#
-        }
+    compare_contents_or_fix_with_path(
+        &get_example_file_path("test_contract.abi"),
+        serde_json::to_string_pretty(&contract.abi).unwrap() + "\n",
+    );
+
+    compare_contents_or_fix_with_path(
+        &get_example_file_path("test_contract.entry_points"),
+        serde_json::to_string_pretty(&contract.entry_points_by_type).unwrap() + "\n",
     );
 }

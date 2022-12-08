@@ -1,1 +1,0 @@
-"func main() -> Array::<felt {\n    5\n}"

@@ -1,53 +1,35 @@
-# Compiling and running cairo files
+#### Creative coding with Cairo
 
-```
-cargo run --bin cairo-run -- -p /path/to/file.cairo
-```
+# Creative Cairo
 
-If we want to run code that is gas tested:
-```
-cargo run --bin cairo-run -- -p /path/to/file.cairo --available-gas 200
-```
+## How to play with it?
 
-We currently only run the a `main` function with no arguments beside implicits.
+1. Clone the repo
+2. Do `cargo run cairo-rest-server`
+3. Go to [localhost:8080](http://localhost:8080/index.html) to have a play!
 
-# Examples
+## What can I do with it?
 
-## With gas:
-```
-func main() -> Option::<felt> implicits (rc: RangeCheck, gb: GasBuiltin) {
-    fib(1, 1, 13)
-}
+Right now you can draw arcs or circles. The initial spec was to just do circles which is like hello world for a graphics thing.
 
-/// Calculates fib...
-func fib(a: felt, b: felt, n: felt) -> Option::<felt> implicits (rc: RangeCheck, gb: GasBuiltin) {
-    get_gas()?;
-    match n {
-        0 => Option::<felt>::Some(a),
-        _ => fib(b, a + b, n - 1),
-    }
-}
-```
+For now the canvas is 512px high and wide.
 
-## Without gas:
-```
-// Calculates fib...
-func main() -> Option::<uint128> implicits (rc: RangeCheck) {
-    fib(uint128_from_felt(1)?, uint128_from_felt(1)?, uint128_from_felt(100)?)
-}
+### `arc`
 
-func fib(a: uint128, b: uint128, n: uint128) -> Option::<uint128> implicits (rc: RangeCheck) {
-    match uint128_to_felt(n) {
-        0 => Option::<uint128>::Some(a),
-        _ => {
-            let r = fib(b, (a + b)?, (n - uint128_from_felt(1)?)?)?;
-            Option::<uint128>::Some(r)
-        },
-    }
-}
-```
+Draws an `arc` between `start` and `end` angles.
 
-# Additional Information
-* Functions without calls to `get_gas` will not compile without `--available-gas` value.
-* Functions with calls to `get_gas` will not compile with `--available-gas` value.
-* When running functions returning arrays `--print-full-memory` should probably be used, to actually see the values contained in the array.
+- `x`: `felt` Center X coord
+- `y`: `felt` Center Y coord
+- `r`: `felt` Radius
+- `start`: `felt` Angle to start at, 10000 = 2PI radians
+- `end`: `felt` Angle to stop at, 10000 = 2PI radians
+
+### `circle`
+
+Just draws an `arc` starting at 0 and ending at 10000 (2 PI)
+
+- `x`: `felt` Center X coordinate
+- `y`: `felt` Center Y coord
+- `r`: `felt` Radius
+
+`struct Arc` describes the data type for an arc.

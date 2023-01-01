@@ -13,35 +13,42 @@
       body {
         display: flex;
         justify-content: center;
-				font: 300 1rem sans-serif;
+        font: 300 1rem sans-serif;
         align-items: center;
         min-height: 100vh;
         margin: 0;
         padding: 0;
       }
 
-			h1 {
-				font: inherit;
-				font-size: 2em;
-			}
-
-      canvas {
-        max-width: calc(100% - 2em);
-        height: auto;
-        box-shadow: 0 0 1em rgb(0, 0, 0, 0.3);
+      a {
+        text-decoration: none;
       }
 
-			button {
-				background: #222;
-				color: #eee;
-				font-size: 1.4em;
-				padding: .5em .8em;
-				width: 100%;
-			}
+      h1,
+      h2,
+      h3 {
+        font-weight: 300;
+      }
+
+      h1 {
+        font: inherit;
+        font-size: 2em;
+      }
+
+      .button {
+        background: #222;
+        color: #eee;
+        font-size: 1.4em;
+        padding: 0.5em 0.8em;
+        width: 100%;
+        display: block;
+        text-align: center;
+        text-decoration: none;
+      }
 
       .editor {
         width: 512px;
-				margin-right: 1em;
+        margin-right: 1em;
       }
 
       .editor textarea {
@@ -49,34 +56,91 @@
         height: 512px;
       }
 
-			.fixed {
-				position: fixed;
-				top: 0;
-				left: 0;
-				right: 0;
-				height: 100px;
-				overflow: auto;
-        box-shadow: 0 0 1em rgb(0, 0, 0, 0.3);
-				padding: 1em;
-			}
+      /* Modal styles */
+      .modal {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        height: 0;
+        top: 0;
+        left: 0;
+        overflow: hidden;
+        background: rgba(0, 0, 0, 0.8);
+        transition: opacity linear 0.2s;
+      }
+      .modal:target {
+        height: 100%;
+        opacity: 1;
+      }
+      .modal-content {
+        position: relative;
+        background: #fff;
+        padding: 20px;
+        width: 60%;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 200;
+      }
+      .modal-content h2 {
+        margin-top: 0;
+      }
+      .modal-content-close {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 30px;
+        height: 30px;
+        line-height: 20px;
+        text-align: center;
+        padding: 5px;
+        background: #222222;
+        color: #fff;
+        display: block;
+      }
+      .modal-close::before {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+
+      #canvas {
+        display: block;
+        margin: auto;
+      }
+
+      #canvas-modal .modal-content {
+        background: #eee;
+      }
     </style>
   </head>
   <body>
-
-		<pre id="response" class="fixed">
-
-		</pre>
-
-		<div class="editor">
-			<h1>Creative coding with Cairo</h3>
-				<p>
-					Write Cairo and watch it draw stuff in the Canvas.
-				</p>
-				<p>
-				<button onclick="submitCairo()">Run Cairo</button>
-			</p>
+    <div class="editor">
+      <h1>Creative coding with Cairo</h1>
+      <p>Write Cairo and watch it draw stuff in the Canvas.</p>
+      <p>
+        <a class="button" href="#canvas-modal" onclick="submitCairo()"
+          >Run Cairo</a
+        >
+      </p>
       <textarea id="cairo" cols="30" rows="10"></textarea>
     </div>
+
+    <div class="modal" id="canvas-modal">
+      <a class="modal-close" href="#"></a>
+      <div class="modal-content">
+        <a class="modal-content-close" href="#">&#10005;</a>
+        <h2>Rendered Cairo</h2>
+        <canvas id="canvas" width="512" height="512"></canvas>
+        <h4>Raw data</h4>
+        <pre id="response"></pre>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/dumb-renderer@0.1.0/dist/index.global.js"></script>
     <script src="script.js"></script>
   </body>

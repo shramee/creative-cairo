@@ -7,8 +7,8 @@ use actix_files;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use clap::Parser;
 
-mod cairo_runner;
-use cairo_runner::cairo_runner;
+mod run_cairo;
+use run_cairo::run_cairo;
 
 static SERVE_PATH: &str = "./static";
 
@@ -26,9 +26,9 @@ async fn main() -> std::io::Result<()> {
 }
 
 fn write_cairo_to_file(cairo: String) -> String {
-    let mut file = File::create("compile.cairo").unwrap();
+    let mut file = File::create("sketch/lib.cairo").unwrap();
     let _r = file.write_all(&cairo.as_bytes());
-    String::from("compile.cairo")
+    String::from("sketch")
 }
 
 fn handle_cairo_run(cairo: String) -> String {
@@ -42,7 +42,7 @@ fn handle_cairo_run(cairo: String) -> String {
 
     let result = std::panic::catch_unwind(|| {
         let path = write_cairo_to_file(cairo);
-        cairo_runner(&path).unwrap()
+        run_cairo(&path).unwrap()
     });
 
     if result.is_ok() {

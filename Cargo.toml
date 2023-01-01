@@ -7,17 +7,29 @@ edition = "2021"
 
 # Members of starkware-libs/cairo
 
-cairo-runner = { git = "https://github.com/starkware-libs/cairo" }
-cairo-filesystem = { git = "https://github.com/starkware-libs/cairo" }
-cairo-compiler = { git = "https://github.com/starkware-libs/cairo" }
-cairo-casm = { git = "https://github.com/starkware-libs/cairo" }
-cairo-diagnostics = { git = "https://github.com/starkware-libs/cairo" }
-cairo-sierra = { git = "https://github.com/starkware-libs/cairo" }
-cairo-sierra-ap-change = { git = "https://github.com/starkware-libs/cairo" }
-cairo-sierra-gas = { git = "https://github.com/starkware-libs/cairo" }
-cairo-sierra-generator = { git = "https://github.com/starkware-libs/cairo" }
-cairo-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" }
-cairo-utils = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-runner = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-filesystem = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-compiler = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-casm = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-diagnostics = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-sierra = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-sierra-ap-change = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-sierra-gas = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-sierra-generator = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" }
+# cairo-utils = { git = "https://github.com/starkware-libs/cairo" }
+
+cairo-runner = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-filesystem = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-compiler = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-casm = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-diagnostics = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-sierra = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-sierra-ap-change = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-sierra-gas = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-sierra-generator = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-sierra-to-casm = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+cairo-utils = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
 
 # Server dependencies
 actix-web = "4"

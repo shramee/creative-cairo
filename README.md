@@ -5,7 +5,7 @@
 ```mermaid
 graph TD
     A[You type Cairo in browser] --Cairo sent to server--> B(Server)
-    B --Returns Cairo output--> C((Browser))
+    B --Returns Cairo output--> C((Renderer))
     C -->|Error| Err[The error shows up in raw output]
     C -->|Not an error| E[Canvas renders something]
 ```

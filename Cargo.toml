@@ -4,29 +4,37 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-runner = { git = "https://github.com/starkware-libs/cairo" }
-compiler = { git = "https://github.com/starkware-libs/cairo" }
-casm =  { git = "https://github.com/starkware-libs/cairo" }
-diagnostics =  { git = "https://github.com/starkware-libs/cairo" }
-sierra =  { git = "https://github.com/starkware-libs/cairo" }
-sierra_ap_change =  { git = "https://github.com/starkware-libs/cairo" }
-sierra_gas =  { git = "https://github.com/starkware-libs/cairo" }
-sierra_generator =  { git = "https://github.com/starkware-libs/cairo" }
-sierra_to_casm =  { git = "https://github.com/starkware-libs/cairo" }
-utils =  { git = "https://github.com/starkware-libs/cairo" }
 
+# Members of starkware-libs/cairo
+
+cairo-runner = { git = "https://github.com/starkware-libs/cairo" }
+cairo-filesystem = { git = "https://github.com/starkware-libs/cairo" }
+cairo-compiler = { git = "https://github.com/starkware-libs/cairo" }
+cairo-casm = { git = "https://github.com/starkware-libs/cairo" }
+cairo-diagnostics = { git = "https://github.com/starkware-libs/cairo" }
+cairo-sierra = { git = "https://github.com/starkware-libs/cairo" }
+cairo-sierra-ap-change = { git = "https://github.com/starkware-libs/cairo" }
+cairo-sierra-gas = { git = "https://github.com/starkware-libs/cairo" }
+cairo-sierra-generator = { git = "https://github.com/starkware-libs/cairo" }
+cairo-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" }
+cairo-utils = { git = "https://github.com/starkware-libs/cairo" }
+
+# Server dependencies
 actix-web = "4"
 actix-files = "*"
+
+# Dependencies from starkware-libs/cairo workspace
 
 anyhow = "1.0.66"
 assert_matches = "1.5"
 bimap = "0.6.2"
-cairo-rs = { git = "https://github.com/lambdaclass/cairo-rs", rev="3a2dead" }
+cairo-rs = { git = "https://github.com/lambdaclass/cairo-rs", rev="42dadd1" }
 chrono = "0.4.23"
 clap = { version = "4.0", features = ["derive"] }
 colored = "2"
 const-fnv1a-hash = "1.1.0"
 convert_case = "0.6.0"
+derivative = "2.2.0"
 diffy = "0.3.0"
 env_logger = "0.9.3"
 genco = "0.17.0"
@@ -59,6 +67,7 @@ thiserror = "1.0.32"
 tokio = { version = "1.18.2", features = ["full", "sync"] }
 toml = "0.4.2"
 tower-lsp = "0.17.0"
+unescaper = "0.1.1"
 xshell = "0.2.2"
 
 

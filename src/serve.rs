@@ -14,13 +14,17 @@ static SERVE_PATH: &str = "./static";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Serving files from {}", SERVE_PATH);
+    let port = match std::env::var("PORT") {
+        Ok(val) => val.parse::<u16>().unwrap(),
+        Err(_e) => 8080,
+    };
+    println!("Serving port {}", port);
     HttpServer::new(|| {
         App::new()
             .route("/cairo", web::post().to(handle_connection))
             .service(actix_files::Files::new("/", SERVE_PATH).show_files_listing())
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", port))?
     .run()
     .await
 }

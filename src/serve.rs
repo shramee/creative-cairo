@@ -1,7 +1,5 @@
-#![feature(internal_output_capture)]
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::Arc;
 
 use actix_files;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
@@ -14,7 +12,7 @@ static SERVE_PATH: &str = "./static";
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let port = match std::env::var("PORT") {
+    let port = match std::env::var("CREATIVE_CAIRO_PORT") {
         Ok(val) => val.parse::<u16>().unwrap(),
         Err(_e) => 8080,
     };
@@ -36,25 +34,10 @@ fn write_cairo_to_file(cairo: String) -> String {
 }
 
 fn handle_cairo_run(cairo: String) -> String {
-    std::io::set_output_capture(Some(Default::default()));
-
-    let captured = std::io::set_output_capture(None);
-    let captured = captured.unwrap();
-    let captured = Arc::try_unwrap(captured).unwrap();
-    let captured = captured.into_inner().unwrap();
-    let captured = String::from_utf8(captured).unwrap();
-
-    let result = std::panic::catch_unwind(|| -> String {
-        let path = write_cairo_to_file(cairo);
-        match run_cairo(&path) {
-            Ok(v) => v,
-            Err(e) => e.to_string(),
-        }
-    });
-
-    match result {
-        Ok(r) => r,
-        Err(_e) => format!("Error occurred.\n{}", captured),
+    let path = write_cairo_to_file(cairo);
+    match run_cairo(&path) {
+        Ok(v) => v,
+        Err(e) => e.to_string(),
     }
 }
 

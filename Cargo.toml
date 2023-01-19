@@ -7,29 +7,17 @@ edition = "2021"
 
 # Members of starkware-libs/cairo
 
-# cairo-runner = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-filesystem = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-compiler = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-casm = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-diagnostics = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-sierra = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-sierra-ap-change = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-sierra-gas = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-sierra-generator = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo" }
-# cairo-utils = { git = "https://github.com/starkware-libs/cairo" }
-
-cairo-runner = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-filesystem = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-compiler = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-casm = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-diagnostics = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-sierra = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-sierra-ap-change = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-sierra-gas = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-sierra-generator = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-sierra-to-casm = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
-cairo-utils = { git = "https://github.com/shramee/cairo", branch = "1595-find-corelib" }
+# Cairo runner dependencies
+cairo-lang-runner = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-compiler = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-casm = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-diagnostics = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-sierra = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-sierra-ap-change = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-sierra-gas = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-sierra-generator = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
+cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
 
 # Server dependencies
 actix-web = "4"

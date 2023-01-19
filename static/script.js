@@ -50,8 +50,10 @@
   }
 
   function processCairoResp(cairoResp) {
-    console.log(cairoResp);
-    let dt = cairoResp.replace(/,$/, '').split(',');
+    let dt = cairoResp;
+    if (typeof cairoResp === 'string') {
+      dt = cairoResp.replace(/,$/, '').split(',');
+    }
 
     ctx.fillStyle = '#fcfaf6';
     ctx.fillRect(0, 0, 9999, 9999);

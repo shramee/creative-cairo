@@ -44,20 +44,22 @@ fn handle_cairo_run(cairo: String) -> String {
     let captured = captured.into_inner().unwrap();
     let captured = String::from_utf8(captured).unwrap();
 
-    let result = std::panic::catch_unwind(|| {
+    let result = std::panic::catch_unwind(|| -> String {
         let path = write_cairo_to_file(cairo);
-        run_cairo(&path).unwrap()
+        match run_cairo(&path) {
+            Ok(v) => v,
+            Err(e) => e.to_string(),
+        }
     });
 
-    if result.is_ok() {
-        format!("{:#?}", result.unwrap())
-    } else {
-        format!("Error occurred.\n{}", captured)
+    match result {
+        Ok(r) => r,
+        Err(_e) => format!("Error occurred.\n{}", captured),
     }
 }
 
 async fn handle_connection(req_body: String) -> impl Responder {
     let run_response = handle_cairo_run(req_body);
-    println!("'{:#?}'", run_response);
+    println!("{:#?}", run_response);
     HttpResponse::Ok().body(run_response)
 }

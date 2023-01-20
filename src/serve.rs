@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::prelude::*;
 
+use actix_cors::Cors;
 use actix_files;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 // use clap::Parser;
@@ -16,13 +17,14 @@ async fn main() -> std::io::Result<()> {
         Ok(val) => val.parse::<u16>().unwrap(),
         Err(_e) => 8080,
     };
-    println!("Serving port {}", port);
+    println!("Serving on port {}", port);
     HttpServer::new(|| {
         App::new()
+            .wrap(Cors::permissive())
             .route("/cairo", web::post().to(handle_connection))
             .service(actix_files::Files::new("/", SERVE_PATH).show_files_listing())
     })
-    .bind(("127.0.0.1", port))?
+    .bind(("0.0.0.0", port))?
     .run()
     .await
 }

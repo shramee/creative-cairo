@@ -22,6 +22,7 @@ cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd
 # Server dependencies
 actix-web = "4"
 actix-files = "*"
+actix-cors = "0.6.4"
 
 # Dependencies from starkware-libs/cairo workspace
 

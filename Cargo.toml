@@ -20,7 +20,8 @@ cairo-lang-sierra-to-casm = { git = "https://github.com/starkware-libs/cairo",re
 cairo-lang-utils = { git = "https://github.com/starkware-libs/cairo",rev = "1bbd7fd6e00824476f02be6b545339bfa287c484" }
 
 # Server dependencies
-actix-web = "4"
+actix-web = { version = "4", features = ["openssl"] }
+openssl = { version = "0.10", features = ["v110"] }
 actix-files = "*"
 actix-cors = "0.6.4"
 

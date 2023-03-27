@@ -1,151 +1,124 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Creative coding with Cairo</title>
+    <meta charset="utf-8" />
+    <title>Rust Code Editor with CodeMirror</title>
+    <!-- CodeMirror styles -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/material.min.css"
+    />
+    <!-- CodeMirror scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/rust/rust.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/matchbrackets.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/closebrackets.js"></script> -->
     <style>
-      * {
-        box-sizing: border-box;
-      }
-
+      html,
       body {
-        display: flex;
-        justify-content: center;
-        font: 300 1rem sans-serif;
-        align-items: center;
-        min-height: 100vh;
         margin: 0;
-        padding: 0;
-      }
-
-      a {
-        text-decoration: none;
+        font: 16px / 1.5 sans-serif;
       }
 
       h1,
       h2,
-      h3 {
-        font-weight: 300;
+      h3,
+      h4,
+      h5 {
+        font-weight: normal;
       }
 
-      h1 {
-        font: inherit;
-        font-size: 2em;
+      /* Column layout */
+      .container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        height: 100vh;
       }
 
-      .button {
-        background: #222;
-        color: #eee;
-        font-size: 1.4em;
-        padding: 0.5em 0.8em;
-        width: 100%;
-        display: block;
-        text-align: center;
-        text-decoration: none;
+      /* Rust code editor styles */
+      .editor,
+      .content {
+        width: 50%;
+        height: 100%;
+        padding: 20px;
+        box-sizing: border-box;
       }
 
       .editor {
-        width: 512px;
-        margin-right: 1em;
+        padding-right: 5px;
+        display: flex;
+        flex-direction: column;
       }
 
-      .editor textarea {
-        width: 100%;
-        height: 512px;
+      #cairo-editor + .CodeMirror {
+        height: auto;
+        flex: 1;
       }
 
-      /* Modal styles */
-      .modal {
-        opacity: 0;
-        position: absolute;
-        width: 100%;
-        height: 0;
-        top: 0;
-        left: 0;
-        overflow: hidden;
-        background: rgba(0, 0, 0, 0.8);
-        transition: opacity linear 0.2s;
+      .CodeMirror-linenumber {
+        padding: 0 0.5em;
       }
-      .modal:target {
-        height: 100%;
-        opacity: 1;
-      }
-      .modal-content {
-        position: relative;
-        background: #fff;
-        padding: 20px;
-        width: 60%;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 200;
-      }
-      .modal-content h2 {
-        margin-top: 0;
-      }
-      .modal-content-close {
-        position: absolute;
-        top: 0;
-        right: 0;
-        width: 30px;
-        height: 30px;
-        line-height: 20px;
-        text-align: center;
-        padding: 5px;
-        background: #222222;
+
+      .header-button {
+        text-transform: uppercase;
+        font-size: 17px;
+        float: right;
+        display: block;
+        text-decoration: none;
+        background: #111;
         color: #fff;
-        display: block;
-      }
-      .modal-close::before {
-        content: '';
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
-        z-index: 1;
-      }
-
-      #canvas {
-        display: block;
-        margin: auto;
-      }
-
-      #canvas-modal .modal-content {
-        background: #eee;
+        padding: 0.5em 0.7em;
       }
 
       #response {
-        overflow: auto;
+        min-height: 3.2em;
+        border: 1px solid #ccc;
+        padding: 0.7em 1em;
+        background: #eee;
         font-family: monospace;
+      }
+
+      #response > span {
+        display: inline-block;
+        margin-right: 0.5em;
+      }
+
+      canvas#canvas {
+        width: 100%;
+        height: auto;
+        margin: 3px;
+        outline: 1px solid #ccc;
+        outline-offset: 2px;
       }
     </style>
   </head>
   <body>
-    <div class="editor">
-      <h1>Creative coding with Cairo</h1>
-      <p>Write Cairo and watch it draw stuff in the Canvas.</p>
-      <p>
-        <a class="button" href="#canvas-modal" onclick="submitCairo()"
-          >Run Cairo</a
-        >
-      </p>
-      <textarea id="cairo" cols="30" rows="10"></textarea>
-    </div>
-
-    <div class="modal" id="canvas-modal">
-      <a class="modal-close" href="#"></a>
-      <div class="modal-content">
-        <a class="modal-content-close" href="#">&#10005;</a>
-        <h2>Rendered Cairo</h2>
+    <div class="container">
+      <div class="editor">
+        <h2>
+          <a
+            class="button header-button"
+            href="#canvas-modal"
+            onclick="submitCairo()"
+          >
+            Run Cairo
+          </a>
+          Cairo code
+        </h2>
+        <textarea id="cairo-editor" cols="30" rows="10"></textarea>
+      </div>
+      <div class="content">
+        <h2>Response</h2>
+        <div id="response"></div>
+        <h2>Render</h2>
         <canvas id="canvas" width="512" height="512"></canvas>
-        <h4>Raw data</h4>
-        <pre id="response"></pre>
       </div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/dumb-renderer@0.1.0/dist/index.global.js"></script>
     <script src="script.js"></script>
   </body>

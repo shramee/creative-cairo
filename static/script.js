@@ -1,11 +1,24 @@
 (() => {
   const canvas = document.getElementById('canvas');
   var ctx = canvas.getContext('2d');
+  const editor = document.querySelector('#cairo-editor');
   const starterCode =
     "// You can draw an arc or circle,\n// 'use' (equivalent to import) them from draw\nuse draw::circle;\nuse draw::arc;\n\n// Circle is also an arc\nuse draw::Arc;\n\n// Set return tuple with all shapes you are returning\nfn main() -> (Arc, Arc) {\n  (\n    circle( 384, 256, 100 ),\n    circle( 128, 256, 100 ),\n  )\n}";
-  document.querySelector('#cairo').innerHTML = starterCode;
+  editor.innerHTML = starterCode;
+  CodeMirror.fromTextArea(document.getElementById('cairo-editor'), {
+    // extensions: [basicSetup, rust()],
+    lineNumbers: true,
+    border: true,
+    theme: 'material',
+    mode: 'application/json',
+    gutters: ['CodeMirror-lint-markers'],
+    styleActiveLine: true,
+    lint: true,
+  });
+
+  editor.dispatchEvent(new Event('change', { bubbles: true }));
   window.submitCairo = async () => {
-    let cairo = document.getElementById('cairo').value;
+    let cairo = document.getElementById('cairo-editor').value;
     let cairoResp = await fetch('./cairo', {
       method: 'POST',
       headers: {},
@@ -13,7 +26,11 @@
     });
     cairoResp = await cairoResp.text();
 
-    document.getElementById('response').innerText = cairoResp;
+    document.getElementById('response').innerHTML = cairoResp
+      .replace('[', '<span>')
+      .replace(']', '</span>')
+      .split(', ')
+      .join(',</span><span>');
     processCairoResp(JSON.parse(cairoResp));
   };
 
